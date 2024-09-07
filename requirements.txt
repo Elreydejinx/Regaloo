@@ -1,0 +1,6 @@
+Flask
+Flask-SQLALchemy
+Flask-Mail
+yagmail
+pymysql
+mysqlclient
