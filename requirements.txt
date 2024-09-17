@@ -4,3 +4,4 @@ Flask-Mail
 yagmail
 pymysql
 mysqlclient
+gunicorn
