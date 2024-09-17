@@ -10,3 +10,10 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USS_SSL = False
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+
+
+
+class ProductionConfig:
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///app.db'
+    CACHE_TYPE = 'SimpleCache'
+    DEBUG = True
