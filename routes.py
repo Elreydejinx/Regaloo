@@ -108,6 +108,10 @@ def refund_order(order_id):
     order = Order.query.get_or_404(order_id)
     if order.status != 'Completed':
         return jsonify({"message": "Only completed orders can be refunded."}), 400
+
+    time_elapsed = datetime.now() - order.placed_at
+    if time_elapsed > timedaelta(minutes=5):
+        return jsonify({"message": "Refund window has expired. Only refunds within 7 minutes are allowed."}), 400
     
     order.status = 'Refunded'
     db.session.commit()
@@ -129,8 +133,113 @@ def send_gift():
 
     return jsonify({"message": "Gift sent successfully!"}), 200
 
+@app.route('/gifts/<unique_id>/refuse', methods=['POST'])
+def refuse_gift(unique_id):
+    gift = Gift.query.filter_by(unique_id=unique_id).first_or_404()
+
+    if gift.status != 'Sent':
+        return jsonify({"message": "Gift connot be refused."}), 400
+
+    gift.status = 'Rejected'
+    db.session.commit()
+
+    return jsonify({"message": "Gift refusal recorded successfully!"}), 200
+
 @app.route('/gifts/<unique_id>', methods=['GET'])
 def track_gift(unique_id):
     gift = Gift.query.filter_by(unique_id=unique_id).first_or_404()
     return jsonify({"unique_id": gift.unique_id, "sender_email": gift.sender_email, "recipient_id": gift.recipient_id, "recipient_address": gift.recipient_address, "status": gift.status})
 
+# from flask import Flask, request, rendertemplate, redirect, urlfor
+# import yagmail
+# import sqlite3
+
+# app = Flask(__name)
+
+# Initialize Yagmail
+# yag = yagmail.SMTP('your_email@gmail.com', 'your_password')
+
+# Mock product database (in a real app, this would be a real database or API)
+# mock_products = {
+#     '123': 'Smartphone',
+#     '456': 'Laptop',
+#     '789': 'Headphones'
+# }
+
+# Setup SQLite database
+# def init_db():
+#     with sqlite3.connect('gifts.db') as conn:
+#         conn.execute('''
+#             CREATE TABLE IF NOT EXISTS gifts (
+#                 id INTEGER PRIMARY KEY,
+#                 product_id TEXT,
+#                 recipient_email TEXT,
+#                 status TEXT,
+#                 address TEXT
+#             )
+#         ''')
+# init_db()
+
+# @app.route('/send_gift', methods=['POST'])
+# def send_gift():
+#     product_id = request.form['product_id']
+#     recipient_email = request.form['recipient_email']
+
+# Store gift in the database
+#     with sqlite3.connect('gifts.db') as conn:
+#         cursor = conn.cursor()
+#         cursor.execute('INSERT INTO gifts (product_id, recipient_email, status) VALUES (?, ?, ?)', 
+#                        (product_id, recipient_email, 'pending'))
+#         gift_id = cursor.lastrowid
+
+#     # Create gift link
+#     gift_link = f'http://localhost:5000/accept_gift/%7Bgift_id%7D'
+#     product_name = mock_products.get(product_id, 'Unknown Product')
+
+#     # Send email
+#     yag.send(
+#         to=recipient_email,
+#         subject='You have received a gift!',
+#         contents=f'You have received a gift! Product ID: {product_id} ({product_name}). Accept it here: {gift_link}'
+#     )
+#     return 'Gift sent!'
+
+# @app.route('/accept_gift/<int:gift_id>', methods=['GET', 'POST'])
+# def accept_gift(gift_id):
+#     if request.method == 'POST':
+#         address = request.form['address']
+
+# Update gift status and address
+#         with sqlite3.connect('gifts.db') as conn:
+#             conn.execute('UPDATE gifts SET status = ?, address = ? WHERE id = ?', 
+#                          ('acc
+# epted', address, giftid))
+
+#         # Notify sender
+#         senderemail = 'youremail@gmail.com'
+#         yag.send(
+#             to=senderemail,
+#             subject='Gift accepted!',
+#             contents=f'The recipient has accepted the gift. Address: {address}'
+#         )
+#         return 'Gift accepted!'
+
+#     # Retrieve gift details
+#     with sqlite3.connect('gifts.db') as conn:
+#         cursor = conn.cursor()
+#         cursor.execute('SELECT product_id FROM gifts WHERE id = ?', (gift_id,))
+#         product_id = cursor.fetchone()
+
+#     product_name = mock_products.get(product_id[0], 'Unknown Product') if product_id else 'Unknown Product'
+
+#     return render_template('accept_gift.html', gift_id=gift_id, product_name=product_name)
+
+# @app.route('/deny_gift/<int:gift_id>', methods=['POST'])
+# def deny_gift(gift_id):
+#     with sqlite3.connect('gifts.db') as conn:
+#         conn.execute('UPDATE gifts SET status = ? WHERE id = ?', 
+#                      ('denied', gift_id))
+#     return 'Gift denied!'
+
+# if __name == '__main':
+#     app.run(debug=True)
